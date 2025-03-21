@@ -1,0 +1,71 @@
+<html>
+
+<head>
+  <title>wordle stats</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
+  <script>
+    let url = 'wordle-source' //'https://www.rockpapershotgun.com/wordle-past-answers'
+    fetch(url)
+      .then(async resp => {
+        if (resp.status !== 200) throw JSON.stringify({
+          status: resp.status,
+          message: await resp.text(),
+        })
+
+        return await resp.text()
+      })
+      .then(text => $(text).find('ul.inline>li'))
+      .then(items => {
+        $('body>.results>.total').text(items.length)
+
+        return items.filter((_, item) => {
+          item.chars = {}
+          item.innerText
+            .split('')
+            .map(l => item.chars[l] = (item.chars[l] ?? 0) + 1)
+          return Object.entries(item.chars).length < 5
+        })
+      })
+      .then(dups => {
+        $('body>.results>.dups').text(dups.length)
+
+        return dups.each((_, item) => item.innerText += " " +
+          JSON.stringify(Object.fromEntries(Object.entries(item.chars)
+            .filter(dup => dup[1] > 1))))
+      })
+      .then(dups => $('body>.words').append(dups))
+      .catch(ex => $(document.body)
+        .addClass('failure')
+        .find('>.exception')
+        .text(`caught exception ${ex} processing url ${url}`))
+  </script>
+  <style>
+    * {
+      font-family: system-ui;
+    }
+
+    body.failure>:not(.exception),
+    body>.exception {
+      display: none;
+    }
+
+    body.failure>.exception {
+      color: red;
+      display: initial;
+      font-weight: bolder;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="title">
+    the source list is proxied from <a href='https://www.rockpapershotgun.com/wordle-past-answers'>rockpapershotgun</a>
+  </div>
+  <div class="results">
+    <div class="total">&nbsp;</div> words with <div class="dups">&nbsp;</div> having the same letter more than once
+  </div>
+  <ul class="words"></ul>
+  <div class="exception">&nbsp;</div>
+</body>
+
+</html>
