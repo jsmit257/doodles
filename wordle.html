@@ -1,69 +1,100 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
   <title>wordle stats</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="gather some statistics from past wordle answers">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+
   <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
   <script>
-    let url = 'wordle-source' //'https://www.rockpapershotgun.com/wordle-past-answers'
-    fetch(url)
-      .then(async resp => {
-        if (resp.status !== 200) throw JSON.stringify({
-          status: resp.status,
-          message: await resp.text(),
+    $(_ => {
+      $(document.body).on('change', '>.show-hide>.toggle-dups', _ =>
+        $(document.body).toggleClass('only-dups'))
+
+      let url = 'wordle-source' //'https://www.rockpapershotgun.com/wordle-past-answers'
+      fetch(url)
+        .then(async resp => {
+          if (resp.status !== 200) throw JSON.stringify({
+            status: resp.status,
+            message: await resp.text(),
+          })
+
+          return await resp.text()
         })
+        .then(text => $(text).find('ul.inline>li'))
+        .then(items => {
+          $('body>.results>.total').text(items.length)
 
-        return await resp.text()
-      })
-      .then(text => $(text).find('ul.inline>li'))
-      .then(items => {
-        $('body>.results>.total').text(items.length)
-
-        return items.filter((_, item) => {
-          item.chars = {}
-          item.innerText
-            .split('')
-            .map(l => item.chars[l] = (item.chars[l] ?? 0) + 1)
-          return Object.entries(item.chars).length < 5
+          return items.filter((_, item) => {
+            item.chars = {}
+            item.innerText
+              .split('')
+              .map(l => item.chars[l] = (item.chars[l] ?? 0) + 1)
+            return $(item).addClass(Object.entries(item.chars).length < 5 ? 'dup' : '')
+          })
         })
-      })
-      .then(dups => {
-        $('body>.results>.dups').text(dups.length)
+        .then(items => {
+          $('body>.results>.dups').text(items.filter((_, item) => $(item).hasClass('dup')).length)
 
-        return dups.each((_, item) => item.innerText += " " +
-          JSON.stringify(Object.fromEntries(Object.entries(item.chars)
-            .filter(dup => dup[1] > 1))))
-      })
-      .then(dups => $('body>.words').append(dups))
-      .catch(ex => $(document.body)
-        .addClass('failure')
-        .find('>.exception')
-        .text(`caught exception ${ex} processing url ${url}`))
+          return items.each((_, item) => $(item).append($('<span>')
+            .text(JSON.stringify(Object.fromEntries(Object.entries(item.chars)
+              .filter(dup => dup[1] > 1))))))
+        })
+        .then(dups => $('body>.words').append(dups))
+        .catch(ex => $(document.body)
+          .addClass('failure')
+          .find('>.exception')
+          .text(`caught exception ${ex} processing url ${url}`))
+    })
   </script>
   <style>
     * {
       font-family: system-ui;
     }
 
-    body.failure>:not(.exception),
-    body>.exception {
-      display: none;
-    }
+    body {
 
-    body.failure>.exception {
-      color: red;
-      display: initial;
-      font-weight: bolder;
+      &.failure>:not(.exception),
+      &>.exception {
+        display: none;
+      }
+
+      &.failure>.exception {
+        color: red;
+        display: initial;
+        font-weight: bolder;
+      }
+
+      &>.show-hide::after {
+        content: 'dups';
+      }
+
+      &.only-dups {
+        &>.show-hide::after {
+          content: 'all';
+        }
+
+        &>.words>li:not(.dup) {
+          display: none;
+        }
+      }
     }
   </style>
 </head>
 
-<body>
+<body class="only-dups">
   <div class="title">
     the source list is proxied from <a href='https://www.rockpapershotgun.com/wordle-past-answers'>rockpapershotgun</a>
   </div>
   <div class="results">
     <div class="total">&nbsp;</div> words with <div class="dups">&nbsp;</div> having the same letter more than once
   </div>
+  <label class="show-hide">
+    <input class="toggle-dups" type="checkbox"> show
+  </label>
   <ul class="words"></ul>
   <div class="exception">&nbsp;</div>
 </body>
