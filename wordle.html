@@ -11,8 +11,25 @@
   <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
   <script>
     $(_ => {
-      $(document.body).on('change', '>.show-hide>.toggle-dups', _ =>
-        $(document.body).toggleClass('only-dups'))
+      $(document.body)
+        .on('change', '>.show-hide>.toggle-dups', _ => $(document.body).toggleClass('only-dups'))
+        .on('keyup', '>.search>input', e => {
+          $('body>.words>li.matched').removeClass('matched')
+
+          if (!e.currentTarget.value) {
+            $('body>.words').removeClass('matching')
+            return
+          }
+
+          $('body>.words').addClass('matching')
+
+          let srch = new RegExp(e.currentTarget.value, 'i')
+
+          $('body>.words>li')
+            .filter((_, li) => srch.test(li.innerText))
+            .addClass('matched')
+        })
+        .on('click', '>.search>.clear', _ => $('body>.search>input').val('').trigger('keyup'))
 
       let url = 'wordle-source' //'https://www.rockpapershotgun.com/wordle-past-answers'
       fetch(url)
@@ -32,18 +49,21 @@
             item.chars = {}
             item.innerText
               .split('')
-              .map(l => item.chars[l] = (item.chars[l] ?? 0) + 1)
+              .map(letter => item.chars[letter] = (item.chars[letter] ?? 0) + 1)
             return $(item).addClass(Object.entries(item.chars).length < 5 ? 'dup' : '')
           })
         })
         .then(items => {
-          $('body>.results>.dups').text(items.filter((_, item) => $(item).hasClass('dup')).length)
+          $('body>.results>.dups').text(
+            items.parent().find('>.dup').each((_, item) =>
+              $(item).append($('<span>')
+                .text(JSON.stringify(Object.fromEntries(Object.entries(item.chars)
+                  .filter(dup => dup[1] > 1))))))
+              .length)
 
-          return items.each((_, item) => $(item).append($('<span>')
-            .text(JSON.stringify(Object.fromEntries(Object.entries(item.chars)
-              .filter(dup => dup[1] > 1))))))
+          return items
         })
-        .then(dups => $('body>.words').append(dups))
+        .then(words => $('body>.words').append(words))
         .catch(ex => $(document.body)
           .addClass('failure')
           .find('>.exception')
@@ -52,7 +72,26 @@
   </script>
   <style>
     * {
+      color: white;
       font-family: system-ui;
+    }
+
+    html {
+      background-color: #0e0c23;
+    }
+
+    input {
+      appearance: none;
+      background-color: #fff2;
+      border: 0;
+      border-radius: .33em;
+      color: white;
+      display: inline-block;
+      font-size: large;
+      outline: none;
+      overflow: clip;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body {
@@ -63,37 +102,76 @@
       }
 
       &.failure>.exception {
-        color: red;
+        color: #fd8585;
         display: initial;
         font-weight: bolder;
       }
 
-      &>.show-hide::after {
-        content: 'dups';
+      &>.show-hide {
+        &::before {
+          content: 'showing';
+        }
+
+        &::after {
+          color: cyan;
+          content: 'all';
+          text-decoration: underline;
+        }
+
+        cursor: pointer;
+        display: block;
+
+        &>input {
+          display: none;
+        }
       }
 
       &.only-dups {
         &>.show-hide::after {
-          content: 'all';
+          content: 'only dups';
         }
 
         &>.words>li:not(.dup) {
           display: none;
         }
       }
+
+      &>.search {
+        line-height: 2em;
+
+        &>* {
+          display: inline;
+        }
+
+        &>.clear {
+          color: red;
+          cursor: pointer;
+          margin-left: .33em;
+        }
+      }
+
+      &>ul.words.matching>li:not(.matched) {
+        display: none;
+      }
     }
   </style>
 </head>
 
-<body class="only-dups">
+<body>
   <div class="title">
     the source list is proxied from <a href='https://www.rockpapershotgun.com/wordle-past-answers'>rockpapershotgun</a>
   </div>
   <div class="results">
-    <div class="total">&nbsp;</div> words with <div class="dups">&nbsp;</div> having the same letter more than once
+    <span class="total">&nbsp;</span> total words
+    <br>
+    <span class="dups">&nbsp;</span> having less than 5 unique letters
   </div>
   <label class="show-hide">
-    <input class="toggle-dups" type="checkbox"> show
+    <input class="toggle-dups" type="checkbox" checked="checked">
+  </label>
+  <label class="search">
+    <input type="text" autocapitalize="off" placeholder="(filter)">
+    <div class="button clear" title="clear">&#10008;</div>
   </label>
   <ul class="words"></ul>
   <div class="exception">&nbsp;</div>
