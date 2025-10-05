@@ -14,14 +14,15 @@
       $(document.body)
         .on('change', '>.show-hide>.toggle-dups', _ => $(document.body).toggleClass('only-dups'))
         .on('keyup', '>.search>input', e => {
-          $('body>.words>li.matched').removeClass('matched')
-
           if (!e.currentTarget.value) {
             $('body>.words').removeClass('matching')
             return
           }
 
-          $('body>.words').addClass('matching')
+          $('body>.words')
+            .addClass('matching')
+            .find('>li.matched')
+            .removeClass('matched')
 
           let srch = new RegExp(e.currentTarget.value, 'i')
 
