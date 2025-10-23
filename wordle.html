@@ -27,7 +27,7 @@
           let srch = new RegExp(e.currentTarget.value, 'i')
 
           $('body>.words>li')
-            .filter((_, li) => srch.test(li.innerText))
+            .filter((_, li) => srch.test(li.attributes.id.value))
             .addClass('matched')
         })
         .on('click', '>.search>.clear', _ => $('body>.search>input').val('').trigger('keyup'))
@@ -46,12 +46,12 @@
         .then(items => {
           $('body>.results>.total').text(items.length)
 
-          return items.filter((_, item) => {
+          return items.each((_, item) => {
             item.chars = {}
             item.innerText
               .split('')
               .map(letter => item.chars[letter] = (item.chars[letter] ?? 0) + 1)
-            return $(item).addClass(Object.entries(item.chars).length < 5 ? 'dup' : '')
+            $(item).addClass(Object.entries(item.chars).length < 5 ? 'dup' : '').attr('id', item.innerText)
           })
         })
         .then(items => {
