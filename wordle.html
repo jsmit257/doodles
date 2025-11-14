@@ -43,32 +43,45 @@
           return await resp.text()
         })
         .then(text => $(text).find('ul.inline>li'))
+        // .then(items => { // might have to find a new source with dates for this to work
+        //   let length = items.length
+
+        //   return items
+        //     .slice(0, length - 1)
+        //     .filter((i, v) => {
+        //       let next = items.get(i + 1)
+        //       if (v.innerText === next.innerText) {
+        //         next.setAttribute('repeated', v.getAttribute('repeated') + 1)
+        //         return false
+        //       }
+        //       return true
+        //     })
+        //     .add(items[length - 1])
+        // })
         .then(items => {
           $('body>.results>.total').text(items.length)
 
           return items.each((_, item) => {
-            item.chars = {}
-            item.innerText
-              .split('')
-              .map(letter => item.chars[letter] = (item.chars[letter] ?? 0) + 1)
-            $(item).addClass(Object.entries(item.chars).length < 5 ? 'dup' : '').attr('id', item.innerText)
-          })
-        })
-        .then(items => {
-          $('body>.results>.dups').text(
-            items.parent().find('>.dup').each((_, item) =>
-              $(item).append($('<span>')
-                .text(JSON.stringify(Object.fromEntries(Object.entries(item.chars)
-                  .filter(dup => dup[1] > 1))))))
-              .length)
+            let chars = {}
+            item.setAttribute('id', item.innerText)
+            item.innerText.split('').map(letter => chars[letter] = (chars[letter] ?? 0) + 1)
 
-          return items
+            chars = Object.fromEntries(Object.entries(chars).filter(dup => dup[1] > 1))
+            if (Object.entries(chars).length > 0) {
+              $(item).addClass('dup').append($('<span>').text(JSON.stringify(chars)))
+            }
+
+            // let repeated = item.getAttribute('repeated')
+            // if (repeated) {
+            //   $(item).append($('<span class=repeated>').text(`x${repeated}`))
+            // }
+          })
         })
         .then(words => $('body>.words').append(words))
         .catch(ex => $(document.body)
           .addClass('failure')
           .find('>.exception')
-          .text(`caught exception ${ex} processing url ${url}`))
+          .text(`caught exception ${ex} processing url ${url} stack ${ex.stack}`))
     })
   </script>
   <style>
@@ -151,8 +164,18 @@
         }
       }
 
-      &>ul.words.matching>li:not(.matched) {
-        display: none;
+      &>ul.words {
+        &>li span {
+          padding-left: .33em;
+
+          &.repeated {
+            font-style: italic;
+          }
+        }
+
+        &.matching>li:not(.matched) {
+          display: none;
+        }
       }
     }
   </style>
