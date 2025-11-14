@@ -43,7 +43,10 @@
           return await resp.text()
         })
         .then(text => $(text).find('ul.inline>li'))
-        // .then(items => { // might have to find a new source with dates for this to work
+        // // XXX: begin future proofing for repeated words, might have to find a 
+        // //   new source with dates for this to work; save each date as attr/data
+        // //   and concatenate dates when removing nodes
+        // .then(items => {
         //   let length = items.length
 
         //   return items
@@ -71,13 +74,15 @@
               $(item).addClass('dup').append($('<span>').text(JSON.stringify(chars)))
             }
 
+            // // XXX: future proofing for repeated words
             // let repeated = item.getAttribute('repeated')
             // if (repeated) {
             //   $(item).append($('<span class=repeated>').text(`x${repeated}`))
             // }
           })
         })
-        .then(words => $('body>.words').append(words))
+        .then(words => $('body>.words').append(words).find('>.dup'))
+        .then(dups => $('body>.results>.dups').text(dups.length))
         .catch(ex => $(document.body)
           .addClass('failure')
           .find('>.exception')
@@ -168,9 +173,12 @@
         &>li span {
           padding-left: .33em;
 
+          /* XXX: future proofing for repeated words */
+          /* 
           &.repeated {
             font-style: italic;
-          }
+          } 
+           */
         }
 
         &.matching>li:not(.matched) {
